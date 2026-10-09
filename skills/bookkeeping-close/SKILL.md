@@ -1,40 +1,42 @@
 ---
 name: bookkeeping-close
-description: Bookkeeping health and month-end close. Use for "bookkeeping status", "close checklist", "where are we on the close", "month-end", "what's uncategorized", or "ready for theBPO".
+description: Control an evidence-backed month-end close, expose blockers, and measure time to a trusted finance-owner sign-off. Use for close status, close checklist, uncategorized balances, reconciliation coverage, controller review, or readiness for financial reporting.
+example-prompt: Give me the month-end close status, unresolved controls, owners, and the shortest path to a trusted sign-off.
 ---
 
-# Bookkeeping Status & Month-End Close
+# Bookkeeping close control
 
-Target: close in **4–5 business days** (was 2–3 weeks). theBPO posts from 1 Oct 2026 onward; QBO cutoff for history was 30 Sep 2026.
+## Outcome
 
-## Health check (pull live)
-1. QBO P&L for the month + YTD; Balance Sheet as of month end.
-2. Flags to compute:
-   - Income in generic buckets ("Services", "Not specified") — $ and % of revenue.
-   - COGS posted to "(deleted)" accounts or missing COGS for months with revenue.
-   - Opex suspiciously low (< $1,000/month) → expenses not entered.
-   - Uncategorized Asset / Income / Expense, Opening Balance Equity, Ask My Accountant balances.
-   - A/R vs Airtable outstanding gap (unapplied payments).
-   - Deferred revenue not released for departed groups.
-   - Bank registers vs bank feed gaps per account.
-   - Shareholder Advance – Maaz movement.
-3. Score each 🟢/🟡/🔴.
+Help the controller close one accounting period from an approved cutoff to a trusted sign-off without recreating QBO financial statements in the bot.
 
-## Close checklist (Day 1–5)
-| Day | Task | Owner |
-|---|---|---|
-| D1 | Accept/match all bank & card feeds; upload statements | Sara / theBPO |
-| D1 | Enter all vendor bills (Amax USA, airlines/BSP, hotels, Mawasim, Rezlive) with Class | Sara |
-| D2 | Apply client payments to invoices; clear unapplied | Sara |
-| D2 | Release deferred revenue for groups departed this month | theBPO (Maaz approves departure list) |
-| D3 | Reconcile Chequing, Trust, Houston Clearing, Amex | theBPO |
-| D3 | Distributor settlements & commissions | Sara / Maaz |
-| D4 | Accruals, prepaid (Amax USA), HST review | theBPO |
-| D4 | Review P&L by Class, margin per line, variance vs last month | AMAX CFO bot → Maaz |
-| D5 | Sign-off, lock period, update Airtable `21_MONTHLY_METRICS` | Maaz |
+## Start conditions
+
+Confirm the entity, period, QBO close calendar, controller, approved materiality/tolerance, source cutoff, and required classes/departments. If the close calendar or tolerance is unavailable, mark it missing rather than hard-coding a target.
+
+## Control sequence
+
+1. **Source completeness:** statements/evidence received; bank and card feeds current; all operational invoice, bill, payment, and booking cutoffs recorded.
+2. **Subledger integrity:** A/R and A/P reviewed; received payments applied; vendor bills entered; Command Center operational records mapped to QBO or placed in the exception queue.
+3. **Cash:** every bank, card, trust/restricted, and clearing account reconciled to independent evidence.
+4. **Revenue:** deferred-revenue roll-forward tied to QBO; recognition events supported by approved service evidence; refunds/cancellations reviewed.
+5. **Costs:** supplier bills, COGS, prepaids, accruals, FX, taxes, and commissions reviewed under controller policy.
+6. **Classification:** uncategorized, suspense, opening-equity, deleted/inactive-account, missing class/department, and intercompany/shareholder items cleared or explicitly accepted.
+7. **Analytical review:** P&L and balance sheet by approved dimensions; material month-over-month or budget variances explained.
+8. **Sign-off:** controller evidence attached, open exceptions accepted or resolved, QBO period closed/locked by an authorized human.
+
+## Status model
+
+For each control report `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `READY FOR REVIEW`, or `SIGNED OFF`. Calculate completion only from required controls with evidence; a missing source is not complete. Show reporting currency and do not combine currencies without approved conversion.
 
 ## Output
-1. Close status: Day N of 5, % complete, blockers.
-2. Flag table with $ impact.
-3. Who needs to do what today.
-4. For Maaz only: yellow-field inputs he must provide (departure dates, approvals).
+
+- Period, cutoff, days elapsed, evidence freshness, and overall close state.
+- Control table: control, status, owner, evidence, exception amount/count, next action, due date.
+- Material exception queue ranked by financial impact and reporting risk.
+- Today list: who must do what next.
+- Sign-off packet: reconciled totals, accepted exceptions, controller/approver, timestamp, and QBO close/lock evidence.
+
+## Boundary
+
+The bot may analyze and draft. Posting adjustments, accepting exceptions, closing/locking a period, or distributing financial statements requires exact authorized approval. Never call a close trusted until all required controls have evidence or the controller has explicitly accepted the named exceptions.

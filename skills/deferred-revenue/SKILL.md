@@ -1,30 +1,44 @@
 ---
 name: deferred-revenue
-description: Deferred revenue roll-forward and recognition at departure. Use for "deferred revenue", "client deposits", "what can we recognize this month", "departed groups", "restricted funds", "trust shortfall".
+description: Reconcile customer prepayments and invoiced bookings to deferred revenue, then prepare recognition candidates from fulfilled travel evidence. Use for unearned revenue, travel-date recognition, deferred-revenue rollforwards, or month-end recognition exceptions. Never post recognition without controller approval.
+example-prompt: Build the deferred-revenue rollforward and show bookings eligible for recognition this month with evidence gaps.
 ---
 
-# Deferred Revenue & Recognition
+# Deferred Revenue
 
-## Principle
-Client money received before departure is a **liability** (Deferred Revenue – Hajj Deposits / Umrah Packages / Tours). It becomes revenue on the **departure/service date**. Matching vendor cost moves from Prepaid (e.g., Prepaid – Amax USA) to COGS on the same date.
+## Outcome
 
-## Roll-forward (per line, per month)
-```
-Opening deferred
-+ Deposits received (Airtable PAYMENTS / QBO receipts coded to deferred)
-− Released to revenue (bookings with Travel Date in month, status Departed/Completed)
-± Refunds / cancellations (no-refund policy — any refund needs Maaz approval note)
-= Closing deferred  → must equal QBO liability balance
-```
+Explain what remains unearned, what may be recognized, and what evidence blocks recognition without confusing bookings, cash collections, and accounting revenue.
 
-## Steps
-1. Pull QBO balances for each deferred revenue account (month start/end).
-2. From Airtable `01_BOOKINGS`, list bookings with Travel Date in the month and Total Paid; group by Booking Type.
-3. Compute expected release; compare to what QBO actually released. Unreleased departed groups = 🔴 (known: Umrah deferred grew $21K Apr → $707K Sep with no release).
-4. Produce a release list for Maaz to approve (departure dates are a Maaz yellow-field input). After approval, the entry is posted by theBPO (or via QBO Advanced revenue recognition schedules if enabled).
+## Source contract
 
-## Restricted-fund check
-Compare Trust balance + amounts already paid to vendors for future departures vs total deferred revenue. If deferred > (Trust + prepaid vendor), the gap = deposits used as working capital. Report it neutrally with the number and trend; recommend Maaz discuss with the TICO-compliance advisor.
+- QuickBooks owns posted invoices, payments, credits, deferred-revenue balances, and recognized-revenue entries.
+- Command Center owns booking, traveler, product, service, and fulfillment evidence.
+- The approved accounting policy owns recognition rules.
+- Twenty CRM may provide pre-sale context but cannot authorize revenue recognition.
 
-## Output
-Roll-forward table by line, release list awaiting approval, gap vs QBO, restricted-fund position.
+An invoice, a cash receipt, or a planned travel date alone does not authorize recognition.
+
+## Procedure
+
+1. Confirm entity, currency, reporting period, approved recognition policy, and QuickBooks deferred-revenue control account.
+2. Build an opening balance from QuickBooks and retain the report or transaction identifiers used.
+3. Link additions to operational bookings using stable booking, invoice, customer, product, amount, and currency identifiers.
+4. Identify recognition candidates only when the required service or fulfillment evidence exists.
+5. Calculate candidate recognition by the approved policy. Keep partially fulfilled and multi-component bookings separated.
+6. Reconcile opening balance plus additions minus posted recognition and other approved adjustments to the ending QuickBooks balance.
+7. Queue unmatched balances, missing travel dates, canceled or changed bookings, unposted payments, amount differences, and missing fulfillment evidence.
+8. Prepare a proposed entry packet with source references and a unique idempotency key; do not post it.
+
+## Required output
+
+- Period, entity, policy version, sources, and confidence.
+- Rollforward: opening, additions, recognized, adjustments, ending, and unexplained difference.
+- Recognition candidates with booking, invoice, product, service date, evidence, amount, and rationale.
+- Deferred balances by expected service month and product.
+- Exception queue with owner, required evidence, and next action.
+- Proposed journal-entry packet marked `DRAFT — NOT POSTED`.
+
+## Approval boundary
+
+Never change a travel date, recognition rule, invoice, deferred balance, class, department, or journal entry without controller approval. If posting is later authorized, use the approved idempotency key, write once, and read the QuickBooks record back.

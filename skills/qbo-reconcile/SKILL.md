@@ -1,43 +1,43 @@
 ---
 name: qbo-reconcile
-description: Bank and card reconciliation prep against QuickBooks. Use for "reconcile RBC for <month>", "bank rec", "trust account rec", "Amex rec", "why doesn't QBO match the bank", or "unmatched transactions".
+description: Prove a named QuickBooks account or control total against independent evidence and prepare its exception queue. Use for bank, card, processor, clearing, or subledger reconciliation; not for collections, vendor prioritization, or general close status. Final sign-off belongs to the controller.
+example-prompt: Reconcile this account through month-end and show matched items, timing differences, errors, and the unexplained residual.
 ---
 
-# QBO Reconciliation Prep
+# QuickBooks Reconcile
 
-Reconciliation **sign-off stays in the QBO UI** (Sara / theBPO). This skill finds, matches and explains.
+## Outcome
 
-## Accounts in scope
-| Account | QBO name | Notes |
-|---|---|---|
-| RBC Business Chequing 3598 | RBC Chequing | operating |
-| RBC TICO Trust 7821 | TICO Trust | client funds — restricted |
-| Houston Collections Clearing | AMAX Houston Collections Clearing | typed as bank; really a clearing account |
-| Amex Aeroplan Business Reserve | Amex 1004 / 2004 | card |
+Prove a QuickBooks balance against independent evidence, isolate every unresolved difference, and make controller sign-off faster without auto-accepting uncertain matches.
 
-## Steps
-1. Ask (or infer) account + month. Get statement ending balance from the user or uploaded statement.
-2. Pull QBO balance for that account at month end (Balance Sheet as of last day).
-3. Pull QBO transactions for the period (via report or import data available) and the statement lines provided.
-4. Match on amount + date ±3 days + payee. Classify unmatched:
-   - **In bank, not in QBO** → needs entry (suggest account + Class).
-   - **In QBO, not in bank** → possible duplicate or wrong account (e.g., Hajj receipts keyed to Chequing that actually landed in Trust/Houston).
-   - **Timing** → outstanding cheques/deposits in transit.
-5. Produce the reconciliation: Statement balance ± outstanding items = Adjusted bank; QBO balance ± corrections = Adjusted book; Difference (must be 0.00).
+## Required inputs
 
-## Suggested coding
-- Class = revenue line (Umrah / Hajj / Air Ticketing / Vacations-Tours / Visa & Biometric / Ancillary).
-- Location = channel (Retail vs Distributor/B2B) — confirm with Maaz if not yet set.
-- Client receipts for future departures → Deferred Revenue (Hajj Deposits / Umrah Packages), never income.
+- Entity, QuickBooks account, period end, and materiality or tolerance.
+- Independent statement, processor report, bank evidence, or approved subledger control total.
+- QuickBooks opening balance, closing balance, and transaction detail for the same scope.
 
-## Output
-1. Headline: Difference $X; # unmatched items both sides.
-2. Rec table (statement → adjusted bank; book → adjusted book).
-3. Unmatched lists with suggested action + account + Class.
-4. "Human decisions needed" list — anything ambiguous.
-5. Optional CSV for QBO import (only after approval).
+QuickBooks is the accounting system of record, but a reconciliation requires independent evidence. If the evidence is missing, return `EVIDENCE_REQUIRED`.
 
-## Watch-outs (known 2026 issues)
-- QBO registers lagged the bank feed Jun–Sep 2026; accept/match feed before reconciling.
-- 14 Hajj receipts (~$237K) keyed to Chequing in Aug–Sep likely belong in Trust/Houston — re-point, don't duplicate.
-- QBO fiscal year ends 31 July — retained earnings roll on 1 Aug.
+## Procedure
+
+1. Confirm the period, account, currency, opening balance, closing balance, and evidence cutoff.
+2. Normalize dates, amounts, references, and signs without changing source data.
+3. Match deterministic identifiers first: transaction ID, check number, processor reference, invoice or bill ID, amount, and currency.
+4. Use date-and-amount proximity only to propose a fuzzy candidate. Never label a fuzzy candidate as confirmed without review.
+5. Classify remaining items as timing difference, missing in QuickBooks, missing in evidence, duplicate, amount difference, wrong account or class, stale item, or unknown.
+6. Build the reconciliation bridge and confirm that matched items plus classified differences explain the control balance.
+7. Prepare correction proposals with source references and unique idempotency keys; do not post them.
+8. Assign each exception an owner and next evidence or action.
+
+## Required output
+
+- Account, period, entity, currency, sources, cutoff, and tolerance.
+- Book balance, evidence balance, reconciled balance, and unexplained residual.
+- Confirmed matches and proposed fuzzy matches kept separate.
+- Exception queue by class, amount, age, owner, and next action.
+- Draft correction packet marked `NOT POSTED`.
+- Close status: `READY_FOR_CONTROLLER`, `BLOCKED`, or `IN_PROGRESS`.
+
+## Approval boundary
+
+Never accept a fuzzy match, mark an account reconciled, alter a transaction, post an adjustment, or sign off the close without controller authorization. After an approved correction, read back the QuickBooks record and rerun the affected reconciliation.

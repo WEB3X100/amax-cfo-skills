@@ -1,43 +1,56 @@
 ---
 name: cash-position
-description: Daily cash brief and Net True Available Cash. Use when asked "how much cash do we have", "cash position", "morning brief", "can we afford X", "runway", or "90-day cash forecast".
+description: Produce a verified current-cash and short-horizon liquidity brief. Use for cash position, available cash, affordability, runway, funding gaps, or a 14/30/60/90-day forecast. Do not treat QuickBooks book cash alone as verified bank cash.
+example-prompt: Show verified unrestricted cash, protected funds, committed outflows, and the first forecast buffer breach.
 ---
 
-# Cash Position & Net True Available Cash
+# Cash Position
 
-## Inputs to pull
-1. **QBO Balance Sheet** (as of today): RBC Business Chequing 3598, RBC TICO Trust 7821, AMAX Houston Collections Clearing, Amex Aeroplan card balance.
-2. **QBO Balance Sheet liabilities**: Deferred Revenue – Hajj Deposits, Deferred Revenue – Umrah Packages, A/P.
-3. **Airtable `11_VENDOR OBLIGATIONS`** (tblldSZly8eFhtenW): Payment Status ≠ Paid, Due Date within 0–90 days.
-4. **Airtable `10_PAYMENT SCHEDULE`** (tblT66r6b2AaDheFi): Payment Status ≠ Paid, Due Date within 0–90 days (expected inflows).
-5. **Airtable `13_CASH FLOW PROJECTION`** (tblUefVqlWaOwtmem) if current periods exist.
+## Outcome
 
-## Calculation
-```
-Gross Cash            = Chequing + Trust + Houston Clearing
-Restricted (Trust)    = Trust balance (client money — TICO)
-Deferred Revenue      = Hajj deposits + Umrah packages (+ Tours if present)
-Vendor Due ≤30d       = sum of unpaid vendor obligations due in next 30 days
-Net True Available    = Gross Cash − Deferred Revenue owed to vendors not yet paid − Vendor Due ≤30d − Card balance due
-```
-If deferred revenue exceeds gross cash, say so plainly: deposits have already been used as working capital — this is the restricted-fund shortfall.
+Give the CEO and controller one defensible liquidity view without double-counting obligations or presenting accounting balances as available cash.
 
-## Output format
-1. One line: **Net True Available Cash: $X (🟢/🟡/🔴)** vs Gross Cash $Y.
-2. Table: Account | Balance | Restricted? | Source/as-of.
-3. Next 30/60/90 days: Expected inflows | Vendor outflows | Net | Cumulative. Flag any period that goes negative 🔴.
-4. Top 3 vendor deadlines (amount, vendor, booking, days left).
-5. Top 3 inflows at risk (overdue clients).
-6. "What I'd do next" — max 3 actions with owner.
+## Source contract
 
-## Thresholds
-- 🔴 Net True Available < 0, or any 30-day window negative, or any vendor obligation ≤7 days unfunded.
-- 🟡 Net True Available < $25,000 or a vendor obligation ≤14 days.
-- 🟢 otherwise.
+- Bank evidence owns actual cleared cash.
+- QuickBooks owns book cash, posted liabilities, and recorded transactions.
+- Command Center owns operational collection schedules and supplier commitments.
+- Approved payroll, tax, debt, and minimum-buffer policies own their respective forecast assumptions.
+- A mismatch becomes an exception; never silently override one source with another.
 
-## Emergency protocol (if 🔴)
-List overdue clients by amount, the top 5 to call today, vendor items that could be deferred, and recommend Maaz review the line of credit. Recommend daily re-runs until stable.
+If bank evidence is missing or stale, label current cash `UNVERIFIED` and provide only a provisional movement forecast. Do not issue a cash-safety verdict.
 
-## Notes
-- If QBO bank registers lag the bank feed (known issue Jun–Sep 2026), say "QBO register vs feed differs by $X" and show both.
-- Never imply Trust money can fund opex or other departures.
+## Definitions
+
+- **Unrestricted cash:** verified cleared bank cash available for ordinary operations.
+- **Restricted or protected cash:** customer funds, trust amounts, taxes, or other balances that policy or contract prevents AMAX from spending.
+- **Committed outflows:** approved obligations with an amount and expected payment date.
+- **Expected inflows:** probability-adjusted collections with an evidence-backed date.
+- **Available after commitments:** unrestricted cash minus deduplicated committed outflows due in the selected horizon.
+- **Buffer headroom:** forecast closing unrestricted cash minus the approved minimum cash buffer.
+
+Deferred revenue is a liability and risk signal. Do not subtract it again when its related supplier obligation is already included in committed outflows.
+
+## Procedure
+
+1. Confirm the `as_of` timestamp, entities, currencies, bank evidence freshness, and forecast horizon.
+2. Reconcile each verified bank balance to its QuickBooks book balance. Put timing differences and unexplained differences in separate queues.
+3. Separate unrestricted, restricted, and unknown-purpose cash. Never assume an unknown balance is spendable.
+4. Collect posted liabilities and operational commitments. Deduplicate them using stable booking, bill, vendor, amount, currency, and service-date references.
+5. Build base and downside forecasts by dated inflow and outflow. Keep probability assumptions visible.
+6. Identify the first date the approved buffer is breached and the transactions driving the breach.
+7. Recommend ranked actions such as accelerate a named collection, defer a non-critical payment with approval, or obtain missing bank evidence.
+
+## Required output
+
+- `as_of`, evidence freshness, entity, currency, and confidence.
+- Verified bank cash, QuickBooks book cash, and reconciliation difference.
+- Unrestricted, protected, and unknown-purpose cash.
+- Available after commitments and buffer headroom.
+- 14/30/60/90-day base and downside closing cash.
+- First buffer-breach date and top drivers.
+- Exception queue with owner, evidence needed, and next action.
+
+## Approval boundary
+
+Never move money, pay a bill, use protected funds, alter a forecast assumption, or present financing as committed without explicit authorization from the appropriate finance owner.

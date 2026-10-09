@@ -1,39 +1,42 @@
 ---
 name: ar-collections
-description: Receivables and collections. Use for "who owes us", "overdue clients", "A/R aging", "collections list", "days to recover payment", "send reminders", or early-payment incentive questions.
+description: Prioritize receivables, reconcile customer balances, and prepare staff-reviewed collection actions. Use for who owes us, overdue invoices, AR aging, collection risk, payment recovery, or reminder drafts. Do not use for supplier bills or bank reconciliation.
+example-prompt: Show the overdue receivables that need action this week and explain any balance mismatches before drafting reminders.
 ---
 
-# A/R & Collections
+# A/R collections control
 
-## Pull
-1. QBO **A/R Aging Summary** and **A/R Aging Detail** (as of today).
-2. Airtable `10_PAYMENT SCHEDULE`: Days Overdue > 0 or Days Until Due ≤ 7, with linked `01_BOOKINGS` (Booking Type, Travel Date, Distributor) and `00_CLIENTS` (name, preferred language, WhatsApp — never passport/DOB).
-3. Airtable `23_COMMUNICATIONS LOG`: last contact date per client.
-4. CRM: client status (VIP / repeat / first-time).
+## Outcome
 
-## Reconcile before reporting
-- Compare QBO open A/R to Airtable outstanding for the same client. If QBO is higher, the likely cause is **payments received but not applied** in QBO (known issue) — label these "Unapplied? check deposits" rather than chasing the client.
-- Exclude clients whose payment is already in the bank but unmatched.
+Give finance a source-backed collection queue that targets the right payer without chasing cash already received or exposing unnecessary personal data.
 
-## Prioritise (score each client)
-- Amount overdue (largest first)
-- Days to travel (≤45 days = top priority; vendor money is at risk)
-- Days overdue bucket: 1–30 / 31–60 / 61–90 / 90+
-- Distributor-booked → chase the distributor, not the traveller (Model 2 remits full amount; Model 1 remits agreed net amount)
+## Sources and trust
+
+1. Use QBO A/R Aging Summary and Detail for posted open receivables.
+2. Use Command Center invoice/payment schedules, booking, travel date, payer type, owner, and QBO mapping for operational context.
+3. Use Twenty only for relationship owner and approved contact context.
+4. Use verified bank evidence only to identify a probable received-but-unapplied payment.
+
+If QBO and the operational schedule disagree, open an exception. Do not change either source or accuse the customer.
+
+## Procedure
+
+1. Confirm the as-of date, entity, currency, and scope. Record source timestamps.
+2. Exclude voided, deleted, disputed, or already-settled items only when the authoritative source proves that state.
+3. Reconcile each material balance by QBO invoice ID, Command Center invoice/booking ID, payer, currency, original amount, applied payments, and open balance.
+4. Classify mismatches: received/unapplied, missing QBO invoice, duplicate, currency/FX, wrong customer, timing, disputed, or unknown.
+5. Prioritize only reconciled or explicitly caveated items using amount, days overdue, days to service, customer promise date, last staff contact, and relationship owner.
+6. Route distributor/partner-booked balances to the contractually responsible payer; never assume the traveller owes the balance.
+7. Draft a collection action with owner, channel, tone, due date, evidence, and the next escalation point. Use the approved contract and policy; never invent penalties, release consequences, or incentives.
 
 ## Output
-1. Headline: total overdue $, # clients, amount tied to departures in next 45 days.
-2. Top 10 table: Client | Booking | Type | Overdue $ | Days overdue | Travel date | Last contact | Channel | Suggested tone.
-3. Draft messages (WhatsApp + email) per tone:
-   - **Gentle** (good payer, <15 days): friendly reminder + payment link.
-   - **Firm** (repeat late or >30 days): due date, amount, consequence (seat/visa/hotel release per terms).
-   - **Distributor**: statement-style list of their open bookings.
-   Match preferred language when known (English / Urdu / Arabic).
-4. Optional early-payment incentive: suggest offer from `14_EARLY_PAYMENT_INCENTIVES` pattern (e.g., small discount for paying balance ≥30 days early) — only where travel is >60 days out.
 
-## Writes (approval required)
-- Create QBO payment link or send invoice reminder → show the invoice #, amount, recipient, then wait for "yes".
-- Log each sent reminder to `23_COMMUNICATIONS LOG` after staff confirm it was sent.
+- Headline: reconciled overdue total, number of payers, near-service exposure, and exception amount.
+- Priority table: payer, document/booking reference, currency, open amount, aging bucket, service date, promise/last contact, owner, reconciliation status, next action.
+- Exception queue with mismatch type and evidence needed.
+- Staff-only message drafts where requested.
+- Up to three owner-assigned actions.
 
-## KPI to report monthly
-Collection rate % (paid vs due), DSO, average days-to-recover by booking type and by distributor.
+## Approval and verification
+
+Drafting needs no external-action approval. Sending a reminder, generating a payment link, changing an invoice, or logging a customer-facing communication requires exact approval for the recipient, document, amount, channel, and text. After any approved mutation, verify the returned record ID/status before reporting completion.
